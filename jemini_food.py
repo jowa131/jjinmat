@@ -297,10 +297,23 @@ def index():
                     final_df['상호명'] = '<a href="' + final_df['링크'] + '" target="_blank">' + final_df['상호명'] + '</a>'
                     final_df['업종'] = '<span class="clickable-category" onclick="addExcludeWord(\'' + final_df['업종'] + '\')" title="클릭하여 제외 업종에 추가">' + final_df['업종'] + '</span>'
                     
-                    # 💡 주소 텍스트를 카카오맵 길찾기(도착지 설정) 링크로 변환 (기존 코드 유지)
-                    final_df['주소'] = final_df['주소'].apply(
-                        lambda x: f'<a href="https://map.kakao.com/?eName={urllib.parse.quote(x)}" target="_blank" title="카카오맵 길찾기로 이동" style="color:#2c3e50; font-weight:500; text-decoration:underline;">{x}</a>'
-                    )
+                    # 💡 주소 텍스트를 카카오맵 공식 길찾기(도착지 설정) 링크로 완벽 변환
+                    def make_route_link(row):
+                        addr = row['주소']
+                        link = str(row['링크'])
+                        
+                        # 장소 고유 ID(숫자)를 추출하여 카카오 공식 길찾기 URL 생성
+                        if "place.map.kakao.com/" in link:
+                            place_id = link.split("/")[-1]
+                            url = f"https://map.kakao.com/link/to/{place_id}"
+                        else:
+                            # ID 추출 실패 시 예외 처리 (검색 방식 유지)
+                            url = f"https://map.kakao.com/?eName={urllib.parse.quote(addr)}"
+                            
+                        return f'<a href="{url}" target="_blank" title="길찾기로 이동" style="color:#2c3e50; font-weight:500; text-decoration:underline;">{addr}</a>'
+
+                    # axis=1을 주어 행 전체(row) 데이터를 함수로 넘깁니다.
+                    final_df['주소'] = final_df.apply(make_route_link, axis=1)
                     
                     table_html = final_df[['순위', '상호명', '업종', '평점', '후기수', '주소']].to_html(escape=False, index=False, border=0)
             
