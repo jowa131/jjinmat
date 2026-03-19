@@ -166,58 +166,86 @@ HTML_TEMPLATE = """
         .live-timer { color: #e74c3c; font-size: 1.2em; font-weight: bold; }
         .progress-text { color: #2980b9; font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 5px; }
         .ad-banner { background-color: #f8f9fa; border: 1px dashed #bdc3c7; padding: 20px; text-align: center; color: #95a5a6; margin: 25px 0; border-radius: 8px; font-size: 0.9em; }
-        /* 📱 모바일 화면 최적화 (카드 뷰 마법) */
+
+/* 📱 모바일 화면 최적화 (CSS Grid 카드 뷰) */
         @media (max-width: 768px) {
-            .table-responsive { overflow-x: hidden; } /* 가로 스크롤 완전 금지 */
-            table, thead, tbody, th, td, tr { display: block; } /* 표의 뼈대를 부수고 블록으로 전환 */
-            thead tr { display: none; } /* 원래 있던 가로 제목줄 숨김 */
+            .table-responsive { overflow-x: hidden; } /* 가로 스크롤 방지 */
+            table, thead, tbody, th, td, tr { box-sizing: border-box; }
+            table { width: 100%; display: block; }
+            thead { display: none; } /* 기존 가로 제목줄 숨김 */
+            tbody { display: block; width: 100%; }
             
             tbody tr { 
-                margin-bottom: 20px; 
+                /* Grid 레이아웃으로 2단 배치 설계 */
+                display: grid;
+                grid-template-columns: max-content 1fr; /* 좌측은 내용만큼, 우측은 남은 공간 모두 */
+                grid-template-areas: 
+                    "rank rank"
+                    "name category"
+                    "rating review"
+                    "address address";
+                align-items: center; /* 세로 중앙 정렬 */
+                gap: 5px 12px; /* 줄 간격 5px, 칸 간격 12px */
+                
+                margin-bottom: 15px; 
                 border: 1px solid #e1e8ed; 
                 border-radius: 10px; 
-                box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-                padding: 15px 10px;
-                background-color: #ffffff !important; /* 제브라 패턴 제거 */
+                padding: 18px 15px;
+                background-color: #ffffff !important; 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.06); 
             }
             
             td { 
                 border: none !important; 
-                border-bottom: 1px dashed #f0f0f0 !important; 
-                position: relative; 
-                padding: 12px 10px 12px 85px !important; /* 글씨가 들어갈 우측 여백 확보 */
+                padding: 0 !important; 
                 text-align: left !important;
-                min-height: 24px;
-                font-size: 1em !important;
-            }
-            td:last-child { border-bottom: none !important; }
-            
-            /* 가상 요소로 각 칸의 좌측에 제목(Label) 강제 생성 */
-            td:before { 
-                position: absolute; 
-                left: 10px; 
-                top: 12px; 
-                width: 70px; 
-                font-weight: 800; 
-                color: #7f8c8d; 
-                font-size: 0.85em;
-                background-color: #f8f9fa;
-                padding: 2px 5px;
-                border-radius: 4px;
+                font-size: 14px;
+                line-height: 1.4;
             }
             
-            /* 순서대로 라벨 텍스트 지정 */
-            td:nth-of-type(1):before { content: "🏆 순위"; }
-            td:nth-of-type(2):before { content: "🍽️ 상호명"; }
-            td:nth-of-type(3):before { content: "🏷️ 업종"; }
-            td:nth-of-type(4):before { content: "⭐ 평점"; }
-            td:nth-of-type(5):before { content: "💬 후기수"; }
-            td:nth-of-type(6):before { content: "📍 주소"; }
+            /* 1번 줄: 순위 (1~2열 전체 차지) */
+            td:nth-of-type(1) { 
+                grid-area: rank; 
+                font-size: 13px; color: #7f8c8d; font-weight: bold;
+                border-bottom: 1px solid #f0f0f0 !important; 
+                padding-bottom: 8px !important; margin-bottom: 4px; 
+            }
+            td:nth-of-type(1)::before { content: "🏆 "; }
+            td:nth-of-type(1)::after { content: "위"; }
             
-            /* 상호명과 주소는 더 눈에 띄게 */
-            td:nth-of-type(2) { font-size: 1.15em !important; font-weight: bold; }
-            td:nth-of-type(6) { line-height: 1.4; }
-        }    
+            /* 2번 줄 좌측: 상호명 */
+            td:nth-of-type(2) { 
+                grid-area: name; 
+                font-size: 18px !important; font-weight: bold; 
+            }
+            
+            /* 2번 줄 우측: 업종 */
+            td:nth-of-type(3) { 
+                grid-area: category; 
+            }
+            
+            /* 3번 줄 좌측: 평점 */
+            td:nth-of-type(4) { 
+                grid-area: rating; 
+                font-weight: bold; color: #e67e22; margin-top: 2px; 
+            }
+            td:nth-of-type(4)::before { content: "⭐ 평점: "; color: #7f8c8d; font-weight: normal; font-size: 13px; }
+            
+            /* 3번 줄 우측: 후기수 */
+            td:nth-of-type(5) { 
+                grid-area: review; 
+                font-weight: bold; color: #2980b9; margin-top: 2px; 
+            }
+            td:nth-of-type(5)::before { content: "💬 후기: "; color: #7f8c8d; font-weight: normal; font-size: 13px; }
+            
+            /* 4번 줄: 주소 (1~2열 전체 차지) */
+            td:nth-of-type(6) { 
+                grid-area: address; 
+                margin-top: 8px; padding-top: 12px !important; 
+                border-top: 1px dashed #f0f0f0 !important; 
+            }
+            td:nth-of-type(6)::before { content: "📍 "; }
+        }
     </style>
     <script>
         let jobId = "{{ job_id }}";
