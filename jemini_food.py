@@ -130,9 +130,8 @@ HTML_TEMPLATE = """
         .form-box { background-color: #fcfcfc; padding: 30px; border-radius: 10px; border: 1px solid #eaeaea; margin-bottom: 30px; }
         .input-group { margin-bottom: 20px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
         .input-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #2c3e50; font-size: 1.05em; }
-        .input-group input[type="text"], .input-group input[type="number"] { width: 100%; padding: 12px; border: 1px solid #ccd1d9; border-radius: 6px; font-size: 15px; box-sizing: border-box; transition: border-color 0.3s; }
+        .input-group input[type="text"], .input-group input[type="number"] { width: 100%; padding: 12px; border: 1px solid #ccd1d9; border-radius: 6px; font-size: 14px; box-sizing: border-box; transition: border-color 0.3s; }
         .input-group input:focus { border-color: #f1c40f; outline: none; }
-        .helper-text { font-size: 0.85em; color: #7f8c8d; margin-top: 6px; line-height: 1.4; }
         
         /* 💡 버튼: 카카오 노란색 복구 */
         .submit-btn-wrapper { text-align: center; margin-top: 30px; }
@@ -153,8 +152,8 @@ HTML_TEMPLATE = """
         tbody tr:hover { background-color: #f1f4f8; transition: background-color 0.2s ease; }
         
         /* 열별 개별 정렬 */
-        th:nth-child(2), td:nth-child(2) { text-align: left; font-size: 1.05em; font-weight: bold; } /* 상호명은 왼쪽 */
-        th:nth-child(6), td:nth-child(6) { text-align: left; font-size: 0.9em; } /* 주소도 왼쪽 */
+        th:nth-child(2), td:nth-child(2) { text-align: left; font-size: 1.05em; font-weight: bold; }
+        th:nth-child(6), td:nth-child(6) { text-align: left; font-size: 0.9em; }
         
         /* 링크 및 상호작용 요소 */
         table a { color: #2980b9; text-decoration: none; }
@@ -220,20 +219,17 @@ HTML_TEMPLATE = """
                 
                 <div class="input-group">
                     <label for="query">📍 검색어 (필수)</label>
-                    <input type="text" id="query" name="query" value="{{ query }}" placeholder="예: 강남역 맛집, 제주도 카페" required>
-                    <div class="helper-text">찾고자 하는 지역명과 식당 종류를 입력해 주세요.</div>
+                    <input type="text" id="query" name="query" value="{{ query }}" placeholder="지역명과 식당 종류 입력 (예: 강남역 맛집)" required>
                 </div>
 
                 <div class="input-group">
                     <label for="max_pages">📑 탐색할 페이지 수</label>
-                    <input type="number" id="max_pages" name="max_pages" value="{{ max_pages }}" min="1" max="34">
-                    <div class="helper-text">카카오맵 기준 <strong>최대 34페이지(약 500개 매장)</strong>까지 탐색 가능합니다.<br>숫자가 클수록 더 많은 데이터를 가져오지만 시간이 오래 걸립니다.</div>
+                    <input type="number" id="max_pages" name="max_pages" value="{{ max_pages }}" min="1" max="34" placeholder="최대 34 (숫자만 입력)">
                 </div>
 
                 <div class="input-group">
                     <label for="exclude-words-input">🚫 제외할 업종 (선택)</label>
-                    <input type="text" id="exclude-words-input" name="exclude_words" value="{{ exclude_words }}" placeholder="예: 프랜차이즈, 카페, 주점">
-                    <div class="helper-text">결과 목록에서 <strong>[업종]을 클릭하면 자동으로 이 칸에 추가</strong>됩니다.<br>여러 개일 경우 쉼표(,)로 구분해 주세요.</div>
+                    <input type="text" id="exclude-words-input" name="exclude_words" value="{{ exclude_words }}" placeholder="쉼표로 구분 또는 아래 목록의 [업종] 클릭">
                 </div>
 
                 <div class="submit-btn-wrapper">
@@ -301,7 +297,7 @@ def index():
                     final_df['상호명'] = '<a href="' + final_df['링크'] + '" target="_blank">' + final_df['상호명'] + '</a>'
                     final_df['업종'] = '<span class="clickable-category" onclick="addExcludeWord(\'' + final_df['업종'] + '\')" title="클릭하여 제외 업종에 추가">' + final_df['업종'] + '</span>'
                     
-                    # 💡 주소 텍스트를 카카오맵 길찾기(도착지 설정) 링크로 변환
+                    # 💡 주소 텍스트를 카카오맵 길찾기(도착지 설정) 링크로 변환 (기존 코드 유지)
                     final_df['주소'] = final_df['주소'].apply(
                         lambda x: f'<a href="https://map.kakao.com/?eName={urllib.parse.quote(x)}" target="_blank" title="카카오맵 길찾기로 이동" style="color:#2c3e50; font-weight:500; text-decoration:underline;">{x}</a>'
                     )
