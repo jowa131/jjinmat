@@ -1,6 +1,7 @@
 import time
 import re
 import uuid
+import urllib.parse
 import pandas as pd
 import logging
 from logging.handlers import RotatingFileHandler
@@ -130,29 +131,30 @@ HTML_TEMPLATE = """
         .input-group { margin-bottom: 20px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
         .input-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #2c3e50; font-size: 1.05em; }
         .input-group input[type="text"], .input-group input[type="number"] { width: 100%; padding: 12px; border: 1px solid #ccd1d9; border-radius: 6px; font-size: 15px; box-sizing: border-box; transition: border-color 0.3s; }
-        .input-group input:focus { border-color: #2980b9; outline: none; }
+        .input-group input:focus { border-color: #f1c40f; outline: none; }
         .helper-text { font-size: 0.85em; color: #7f8c8d; margin-top: 6px; line-height: 1.4; }
         
+        /* 💡 버튼: 카카오 노란색 복구 */
         .submit-btn-wrapper { text-align: center; margin-top: 30px; }
-        input[type="submit"] { padding: 14px 30px; background-color: #2c3e50; color: #ffffff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; max-width: 500px; transition: background-color 0.2s; }
-        input[type="submit"]:hover { background-color: #1a252f; }
+        input[type="submit"] { padding: 14px 30px; background-color: #FAE100; color: #1e1e1e; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; max-width: 500px; transition: background-color 0.2s; }
+        input[type="submit"]:hover { background-color: #f1c40f; }
         
-        /* 💡 수정된 테이블 및 정렬/색상 스타일 */
+        /* 테이블 래퍼 및 스타일 */
         .table-wrapper { box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-radius: 8px; overflow: hidden; margin-top: 20px; }
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.95em; min-width: 750px; background-color: #ffffff; text-align: center; }
         
-        /* 테이블 헤더: 다크 네이비 테마 */
-        th { background-color: #2c3e50; color: #ffffff; font-weight: 500; padding: 15px 10px; white-space: nowrap; letter-spacing: 0.5px; border: none; }
+        /* 💡 테이블 헤더: 카카오 노란색 복구 */
+        th { background-color: #FAE100; color: #1e1e1e; font-weight: bold; padding: 15px 10px; white-space: nowrap; letter-spacing: 0.5px; border-bottom: 2px solid #e5c100; }
         td { padding: 14px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
         
         /* 제브라 패턴 및 마우스 오버 효과 */
         tbody tr:nth-child(even) { background-color: #fafbfc; }
         tbody tr:hover { background-color: #f1f4f8; transition: background-color 0.2s ease; }
         
-        /* 💡 열별 개별 정렬 (순위, 상호명, 업종, 평점, 후기수, 주소) */
+        /* 열별 개별 정렬 */
         th:nth-child(2), td:nth-child(2) { text-align: left; font-size: 1.05em; font-weight: bold; } /* 상호명은 왼쪽 */
-        th:nth-child(6), td:nth-child(6) { text-align: left; color: #7f8c8d; font-size: 0.9em; } /* 주소도 왼쪽 */
+        th:nth-child(6), td:nth-child(6) { text-align: left; font-size: 0.9em; } /* 주소도 왼쪽 */
         
         /* 링크 및 상호작용 요소 */
         table a { color: #2980b9; text-decoration: none; }
@@ -261,51 +263,53 @@ HTML_TEMPLATE = """
 </html>
 """
 
-
 # --- Flask 웹 라우팅 ---
 @app.route('/progress/<job_id>')
-def progress(job_id):
+def progress(job_id): 
     return jsonify(scrape_progress.get(job_id, {"status": "ready", "current": 0, "total": 0}))
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     table_html, query, max_pages, exclude_words, elapsed_time = "", "", 15, "", "0"
     current_job_id = str(uuid.uuid4())
-
+    
     if request.method == 'POST':
         user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         query = request.form.get('query', '')
         max_pages = int(request.form.get('max_pages', 15))
         exclude_words = request.form.get('exclude_words', '')
         current_job_id = request.form.get('job_id', current_job_id)
-
+        
         if query.strip():
             start_t = time.time()
             data = crawl_kakao_map(query, max_pages, current_job_id)
             df = pd.DataFrame(data)
-
+            
             num_res = 0
             if not df.empty:
                 df = df.drop_duplicates(subset=['상호명'])
                 if exclude_words.strip():
                     pattern = '|'.join([w.strip() for w in exclude_words.split(',') if w.strip()])
                     df = df[~df['업종'].str.contains(pattern, na=False)]
-
+                
                 final_df = df[df['평점'] >= 4.0].sort_values(by='후기수', ascending=False).head(10)
                 num_res = len(final_df)
-
+                
                 if not final_df.empty:
-                    # 💡 Pandas 기본 인덱스를 깔끔한 '순위' 열로 교체
                     final_df.insert(0, '순위', range(1, num_res + 1))
-
+                    
                     final_df['상호명'] = '<a href="' + final_df['링크'] + '" target="_blank">' + final_df['상호명'] + '</a>'
                     final_df['업종'] = '<span class="clickable-category" onclick="addExcludeWord(\'' + final_df['업종'] + '\')" title="클릭하여 제외 업종에 추가">' + final_df['업종'] + '</span>'
-
-                    # index=False 옵션으로 지저분한 인덱스 테이블 렌더링 방지
+                    
+                    # 💡 주소 텍스트를 카카오맵 길찾기(도착지 설정) 링크로 변환
+                    final_df['주소'] = final_df['주소'].apply(
+                        lambda x: f'<a href="https://map.kakao.com/?eName={urllib.parse.quote(x)}" target="_blank" title="카카오맵 길찾기로 이동" style="color:#2c3e50; font-weight:500; text-decoration:underline;">{x}</a>'
+                    )
+                    
                     table_html = final_df[['순위', '상호명', '업종', '평점', '후기수', '주소']].to_html(escape=False, index=False, border=0)
-
+            
             elapsed_time = f"{time.time() - start_t:.2f}"
-
+            
             try: logger.info(f"IP:{user_ip}|Q:'{query}'|P:{max_pages}|R:{num_res}|T:{elapsed_time}s")
             except: pass
 
