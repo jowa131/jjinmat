@@ -166,6 +166,58 @@ HTML_TEMPLATE = """
         .live-timer { color: #e74c3c; font-size: 1.2em; font-weight: bold; }
         .progress-text { color: #2980b9; font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 5px; }
         .ad-banner { background-color: #f8f9fa; border: 1px dashed #bdc3c7; padding: 20px; text-align: center; color: #95a5a6; margin: 25px 0; border-radius: 8px; font-size: 0.9em; }
+        /* 📱 모바일 화면 최적화 (카드 뷰 마법) */
+        @media (max-width: 768px) {
+            .table-responsive { overflow-x: hidden; } /* 가로 스크롤 완전 금지 */
+            table, thead, tbody, th, td, tr { display: block; } /* 표의 뼈대를 부수고 블록으로 전환 */
+            thead tr { display: none; } /* 원래 있던 가로 제목줄 숨김 */
+            
+            tbody tr { 
+                margin-bottom: 20px; 
+                border: 1px solid #e1e8ed; 
+                border-radius: 10px; 
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+                padding: 15px 10px;
+                background-color: #ffffff !important; /* 제브라 패턴 제거 */
+            }
+            
+            td { 
+                border: none !important; 
+                border-bottom: 1px dashed #f0f0f0 !important; 
+                position: relative; 
+                padding: 12px 10px 12px 85px !important; /* 글씨가 들어갈 우측 여백 확보 */
+                text-align: left !important;
+                min-height: 24px;
+                font-size: 1em !important;
+            }
+            td:last-child { border-bottom: none !important; }
+            
+            /* 가상 요소로 각 칸의 좌측에 제목(Label) 강제 생성 */
+            td:before { 
+                position: absolute; 
+                left: 10px; 
+                top: 12px; 
+                width: 70px; 
+                font-weight: 800; 
+                color: #7f8c8d; 
+                font-size: 0.85em;
+                background-color: #f8f9fa;
+                padding: 2px 5px;
+                border-radius: 4px;
+            }
+            
+            /* 순서대로 라벨 텍스트 지정 */
+            td:nth-of-type(1):before { content: "🏆 순위"; }
+            td:nth-of-type(2):before { content: "🍽️ 상호명"; }
+            td:nth-of-type(3):before { content: "🏷️ 업종"; }
+            td:nth-of-type(4):before { content: "⭐ 평점"; }
+            td:nth-of-type(5):before { content: "💬 후기수"; }
+            td:nth-of-type(6):before { content: "📍 주소"; }
+            
+            /* 상호명과 주소는 더 눈에 띄게 */
+            td:nth-of-type(2) { font-size: 1.15em !important; font-weight: bold; }
+            td:nth-of-type(6) { line-height: 1.4; }
+        }    
     </style>
     <script>
         let jobId = "{{ job_id }}";
