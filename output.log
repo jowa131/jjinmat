@@ -1,0 +1,53 @@
+ * Serving Flask app 'jemini_food'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.138.0.2:5000
+[33mPress CTRL+C to quit[0m
+125.186.191.36 - - [19/Mar/2026 08:41:10] "GET / HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:15] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:16] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:17] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:18] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:19] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:20] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:21] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:22] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:23] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:24] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:25] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:26] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:27] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:28] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:29] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:30] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:31] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:32] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:33] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:34] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:35] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:36] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:37] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:38] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:39] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:40] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:41] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:42] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:43] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:44] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:45] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:46] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:47] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:48] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:49] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:50] "GET /progress/0d1d6a4a-4a44-4b4e-a0f4-1c6cee375764 HTTP/1.1" 200 -
+125.186.191.36 - - [19/Mar/2026 08:41:50] "POST / HTTP/1.1" 200 -
+87.121.84.76 - - [19/Mar/2026 08:42:28] "GET / HTTP/1.1" 200 -
+93.174.93.12 - - [19/Mar/2026 08:53:29] code 400, message Bad request version ("¯nãY»bhlÿ(=':©\x82ÙoÈ¢×\x93\x98´ï\x80å¹\x90\x00(À")
+93.174.93.12 - - [19/Mar/2026 08:53:29] "[35m[1m\x16\x03\x02\x01o\x01\x00\x01k\x03\x02RHÅ\x1a#÷:Nßâ´\x82/ÿ\x09T\x9f§Äy°hÆ\x13\x8c¤\x1c="á\x1a\x98 \x84´,\x85¯nãY»bhlÿ(=':©\x82ÙoÈ¢×\x93\x98´ï\x80å¹\x90\x00(À[0m" HTTPStatus.BAD_REQUEST -
+85.11.183.21 - - [19/Mar/2026 08:53:37] code 400, message Bad request version ("sëåI»/¶v>6k^Jô\x80©ÕÄÊ!³9¦Î¡éÂÑX&ºw\x00\\\x13\x02\x13\x03\x13\x01À,À0Ì©Ì¨À¯À\xadÀ]ÀaÀ+À/À®À¬À\\À`À$À(ÀsÀwÀ#À'ÀrÀvÀ")
+85.11.183.21 - - [19/Mar/2026 08:53:37] "[35m[1m\x16\x03\x01\x02\x00\x01\x00\x01ü\x03\x03Y}¡_Úù!³e$©þ\x09±¥\x873½'§­A\x1eRs\x95¶ìç1\x92E sëåI»/¶v>6k^Jô\x80©ÕÄÊ!³9¦Î¡éÂÑX&ºw\x00\\\x13\x02\x13\x03\x13\x01À,À0Ì©Ì¨À¯À­À]ÀaÀ+À/À®À¬À\\À`À$À(ÀsÀwÀ#À'ÀrÀvÀ[0m" HTTPStatus.BAD_REQUEST -
+85.11.183.21 - - [19/Mar/2026 08:53:37] "GET / HTTP/1.1" 200 -
+92.118.39.30 - - [19/Mar/2026 08:54:16] "[33mGET /SDK/webLanguage HTTP/1.1[0m" 404 -
+125.186.191.36 - - [19/Mar/2026 09:00:19] "POST / HTTP/1.1" 200 -
