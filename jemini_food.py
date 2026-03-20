@@ -18,7 +18,6 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
-app = Flask(__name__)
 # 실행 위치와 무관하게 현재 스크립트(jemini_food.py)가 있는 디렉토리를 기준으로 templates 폴더를 찾도록 설정
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'), static_folder=os.path.join(BASE_DIR, 'static'))
