@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
-# --- 💡 로깅 설정 ---
+# --- 💡 로깅 설정 테스트 ---
 logger = logging.getLogger('CrawlerUsage')
 logger.setLevel(logging.INFO)
 log_path = 'usage.log' 
