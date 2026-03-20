@@ -90,37 +90,11 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
             time.sleep(2) # 💡 첫 검색 후 리뷰 및 평점 데이터가 비동기로 렌더링될 시간을 충분히 부여
             
-            try:
-                # 변경 전 기존 목록 요소를 기억해둠
-                initial_items = driver.find_elements(By.CSS_SELECTOR, "li.PlaceItem")
-                
-                more_button = driver.find_element(By.ID, "info.search.place.more")
-                # 💡 화면에 보이지 않는 '장소 더보기' 버튼을 강제 클릭하면 2페이지로 넘어가는 버그 방지
-                if more_button.is_displayed() and "HIDDEN" not in more_button.get_attribute("class").upper():
-                    driver.execute_script("arguments[0].click();", more_button)
-                    
-                    # '장소 더보기' 클릭 시 기존 목록이 사라지고 1페이지 전체 목록이 새로 렌더링될 때까지 확실히 대기
-                    if initial_items:
-                        wait.until(EC.staleness_of(initial_items[0]))
-                        
-                    wait.until(EC.visibility_of_element_located((By.ID, "info.search.page"))) # 페이지 번호가 보일 때까지 대기
-                    time.sleep(2) # 💡 새로운 1페이지 리스트와 별점이 온전히 렌더링되도록 넉넉히 대기
-            except:
-                pass
-
-            # 💡 크롤링 루프 시작 전, 현재 페이지가 틀어졌을 경우를 대비해 확실하게 1페이지로 초기화
-            try:
-                page_1_btn = driver.find_element(By.ID, "info.search.page.no1")
-                if "ACTIVE" not in page_1_btn.get_attribute("class").upper():
-                    driver.execute_script("arguments[0].click();", page_1_btn)
-                    time.sleep(2)
-            except:
-                pass
-
             scrape_progress[job_id]["status"] = "scraping"
             
-            for page in range(1, max_pages + 1):
-                scrape_progress[job_id]["current"] = page
+            current_page = 1
+            while current_page <= max_pages:
+                scrape_progress[job_id]["current"] = current_page
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
                 time.sleep(2) # 💡 상호명이 뜬 직후 별점(em.num)이 채워지는 시간을 넉넉히 대기
                 
@@ -157,25 +131,59 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                         addr_tag = place.select_one("div.info_item > div.addr > p")
                         address = addr_tag.text.strip() if addr_tag else ""
                         
-                        restaurant_list.append({"페이지": page, "상호명": name, "업종": category, "평점": rating, "후기수": rating_count, "주소": address, "링크": link})
+                        restaurant_list.append({"페이지": current_page, "상호명": name, "업종": category, "평점": rating, "후기수": rating_count, "주소": address, "링크": link})
                     except:
                         # 데이터 파싱 중 일부 오류가 나도 해당 식당을 통째로 날리지 않고 계속 진행
                         pass
                         
-                if page == max_pages: break
-                
-                # 다음 페이지로 넘어가기 전 현재 목록의 첫 번째 아이템을 기억해둠
-                first_item = driver.find_element(By.CSS_SELECTOR, "li.PlaceItem")
-                try:
-                    next_page_num = page + 1
-                    if next_page_num % 5 == 1:
-                        driver.execute_script("arguments[0].click();", driver.find_element(By.ID, "info.search.page.next"))
-                    else:
-                        page_btn = driver.find_element(By.ID, f"info.search.page.no{next_page_num % 5 if next_page_num % 5 != 0 else 5}")
-                        driver.execute_script("arguments[0].click();", page_btn)
-                    wait.until(EC.staleness_of(first_item)) # 이전 목록의 아이템이 사라질 때까지(DOM 업데이트 완료) 대기
-                except:
+                if current_page == max_pages:
                     break
+                
+                # --- 다음 페이지 이동 로직 ---
+                try:
+                    first_item = driver.find_element(By.CSS_SELECTOR, "li.PlaceItem")
+                except:
+                    break # 리스트가 아예 없으면 더 이상 진행 불가
+                
+                clicked_more = False
+                try:
+                    # 1. '장소 더보기' 버튼이 있다면 먼저 클릭 (최초 리스트업 수집 후 확장)
+                    more_button = driver.find_element(By.ID, "info.search.place.more")
+                    if more_button.is_displayed() and "HIDDEN" not in more_button.get_attribute("class").upper():
+                        driver.execute_script("arguments[0].click();", more_button)
+                        clicked_more = True
+                        wait.until(EC.staleness_of(first_item))
+                except:
+                    pass
+                
+                if clicked_more:
+                    current_page += 1
+                    continue
+                    
+                try:
+                    # 2. '장소 더보기'가 없다면 현재 UI 상 활성화된 페이지를 기준으로 다음 페이지 클릭
+                    active_page_element = driver.find_element(By.XPATH, "//*[@id='info.search.page']//*[contains(@class, 'ACTIVE')]")
+                    ui_current_page = int(active_page_element.text)
+                    ui_next_page = ui_current_page + 1
+                    
+                    if ui_next_page % 5 == 1:
+                        # 5, 10, 15... 페이지 이후 '다음' 그룹 버튼 클릭
+                        next_btn = driver.find_element(By.ID, "info.search.page.next")
+                        if "DISABLED" in next_btn.get_attribute("class").upper():
+                            break
+                        driver.execute_script("arguments[0].click();", next_btn)
+                    else:
+                        # 일반 페이지 번호 클릭
+                        page_btn_id = f"info.search.page.no{ui_next_page % 5 if ui_next_page % 5 != 0 else 5}"
+                        page_btn = driver.find_element(By.ID, page_btn_id)
+                        if "HIDDEN" in page_btn.get_attribute("class").upper() or "DISABLED" in page_btn.get_attribute("class").upper():
+                            break
+                        driver.execute_script("arguments[0].click();", page_btn)
+                        
+                    wait.until(EC.staleness_of(first_item))
+                    current_page += 1
+                except:
+                    break # 페이지네이션 요소가 더 없으면 완전히 종료
         finally:
             driver.quit()
 
