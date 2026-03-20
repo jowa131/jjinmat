@@ -147,12 +147,25 @@
                 .then(res => res.json())
                 .then(data => {
                     let statusText = document.getElementById('status-text');
-                    if (data.status === "cached") {
+                    let progressBar = document.getElementById('progress-bar');
+                    
+                    if (data.status === "waiting_for_browser") {
+                        statusText.innerHTML = "⏳ 다른 사용자의 작업이 끝나기를 대기 중입니다...";
+                        progressBar.style.width = "5%";
+                        progressBar.style.backgroundColor = "#ff9800"; // 주황색
+                    } else if (data.status === "cached") {
                         statusText.innerHTML = "저장된 데이터를 불러오는 중입니다 ⚡";
+                        progressBar.style.width = "100%";
+                        progressBar.style.backgroundColor = "#4caf50"; // 초록색
                     } else if (data.status === "initializing") {
                         statusText.innerHTML = "초기 브라우저 구동 및 검색어 입력 중 🚀";
+                        progressBar.style.width = "10%";
+                        progressBar.style.backgroundColor = "#2196f3"; // 파란색
                     } else if (data.status === "scraping") {
+                        let percentage = Math.round((data.current / data.total) * 100);
                         statusText.innerHTML = "현재 " + data.total + "페이지 중 " + data.current + "페이지 탐색 중 🚀";
+                        progressBar.style.width = percentage + "%";
+                        progressBar.style.backgroundColor = "#4caf50"; // 초록색
                     }
                 });
             }, 1000);
@@ -203,6 +216,12 @@
             <div id="loading" class="loading">
                 <span class="progress-text" id="status-text">서버 연결 중...</span>
                 <span class="live-timer"><span id="live-time">0</span>초</span> 경과
+                
+                <!-- 💡 추가된 프로그레스 바 UI -->
+                <div style="width: 100%; max-width: 600px; margin: 15px auto 10px; background-color: #e0e0e0; border-radius: 8px; overflow: hidden; height: 20px;">
+                    <div id="progress-bar" style="width: 0%; height: 100%; background-color: #4caf50; transition: width 0.4s ease, background-color 0.4s ease;"></div>
+                </div>
+
                 <div style="font-size: 0.85em; color: #7f8c8d; margin-top: 8px;">데이터 양에 따라 10초 ~ 1분 정도 소요될 수 있습니다.</div>
             </div>
         </div>
