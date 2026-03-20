@@ -136,14 +136,10 @@
         
         function startLoadingTimer() {
             document.getElementById('loading').style.display = 'block';
-            let startTime = Date.now();
-            
-            setInterval(() => { 
-                document.getElementById('live-time').innerText = Math.floor((Date.now() - startTime) / 1000); 
-            }, 1000);
             
             intervalId = setInterval(() => {
-                fetch('/progress/' + jobId)
+                // 💡 브라우저 캐싱 방지: 매 요청마다 현재 시간(Timestamp)을 붙여 무조건 최신 상태를 받아옴
+                fetch('/progress/' + jobId + '?t=' + new Date().getTime(), { cache: 'no-store' })
                 .then(res => res.json())
                 .then(data => {
                     let statusText = document.getElementById('status-text');
@@ -215,7 +211,6 @@
             
             <div id="loading" class="loading">
                 <span class="progress-text" id="status-text">서버 연결 중...</span>
-                <span class="live-timer"><span id="live-time">0</span>초</span> 경과
                 
                 <!-- 💡 추가된 프로그레스 바 UI -->
                 <div style="width: 100%; max-width: 600px; margin: 15px auto 10px; background-color: #e0e0e0; border-radius: 8px; overflow: hidden; height: 20px;">
