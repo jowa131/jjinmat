@@ -109,6 +109,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             # 💡 스마트 대기: 무조건 2초를 기다리지 않고, 별점 데이터가 로딩되면 즉시 통과 (최대 2초)
             for _ in range(10):
                 if any(e.text.strip() not in ['', '0.0'] for e in driver.find_elements(By.CSS_SELECTOR, "em.num")):
+                    time.sleep(0.5) # 💡 첫 식당 별점 렌더링 직후, 나머지 14개 식당의 데이터도 DOM에 채워질 수 있도록 0.5초 여유 부여
                     break
                 time.sleep(0.2)
             
@@ -122,6 +123,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                 # 💡 스마트 대기: 페이지 이동 후 별점 데이터 로딩 시 즉시 통과
                 for _ in range(10):
                     if any(e.text.strip() not in ['', '0.0'] for e in driver.find_elements(By.CSS_SELECTOR, "em.num")):
+                        time.sleep(0.5) # 💡 나머지 식당 DOM 렌더링 대기
                         break
                     time.sleep(0.2)
                 
@@ -148,11 +150,12 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                             except: pass
                         
                         rating_count = 0
-                        rating_count_tag = place.select_one("a[data-id='numberofscore']") or place.select_one(".rating .numberofscore") or place.select_one("a[data-id='review']")
-                        if rating_count_tag:
-                            cnt_str = re.sub(r'[^0-9]', '', rating_count_tag.text)
+                        # 💡 카카오맵의 '별점 참여 수'와 '방문자/블로그 리뷰 수'를 모두 찾아 합산하여 누락 방지 및 랭킹 정확도 향상
+                        review_tags = place.select("a[data-id='numberofscore'], a[data-id='review']")
+                        for r_tag in review_tags:
+                            cnt_str = re.sub(r'[^0-9]', '', r_tag.text)
                             if cnt_str:
-                                try: rating_count = int(cnt_str)
+                                try: rating_count += int(cnt_str)
                                 except: pass
                         
                         addr_tag = place.select_one("div.info_item > div.addr > p")
