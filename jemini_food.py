@@ -73,6 +73,9 @@ def crawl_kakao_map(region_query, max_pages, job_id):
         # 💡 브라우저 구동 시 프록시 자동 탐색으로 인한 20초 지연(Hang) 현상 완벽 방지
         options.add_argument('--proxy-server="direct://"')
         options.add_argument('--proxy-bypass-list=*')
+        options.add_argument('--disable-dbus')                # 💡 리눅스 DBus 타임아웃(초기 구동 20초 지연) 완벽 방지
+        options.add_argument('--disable-background-networking')
+        options.add_argument('--no-first-run')
         options.page_load_strategy = 'eager'
         
         # 💡 극한의 속도 최적화: 텍스트 크롤링에 불필요한 모든 리소스 차단
@@ -102,7 +105,12 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             search_box.send_keys(region_query)
             search_box.send_keys(Keys.ENTER)
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
-            time.sleep(2) # 💡 첫 검색 후 리뷰 및 평점 데이터가 비동기로 렌더링될 시간을 충분히 부여
+            
+            # 💡 스마트 대기: 무조건 2초를 기다리지 않고, 별점 데이터가 로딩되면 즉시 통과 (최대 2초)
+            for _ in range(10):
+                if any(e.text.strip() not in ['', '0.0'] for e in driver.find_elements(By.CSS_SELECTOR, "em.num")):
+                    break
+                time.sleep(0.2)
             
             scrape_progress[job_id]["status"] = "scraping"
             
@@ -110,7 +118,12 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             while current_page <= max_pages:
                 scrape_progress[job_id]["current"] = current_page
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
-                time.sleep(2) # 💡 상호명이 뜬 직후 별점(em.num)이 채워지는 시간을 넉넉히 대기
+                
+                # 💡 스마트 대기: 페이지 이동 후 별점 데이터 로딩 시 즉시 통과
+                for _ in range(10):
+                    if any(e.text.strip() not in ['', '0.0'] for e in driver.find_elements(By.CSS_SELECTOR, "em.num")):
+                        break
+                    time.sleep(0.2)
                 
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 places = soup.select("li.PlaceItem")
