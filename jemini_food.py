@@ -188,6 +188,8 @@ def index():
                 num_res = 0
                 if not df.empty and '상호명' in df.columns:
                     df = df.drop_duplicates(subset=['상호명', '주소']) # 이름이 같아도 지점(주소)이 다르면 누락되지 않도록 수정
+                    
+                    raw_df = df.copy() # 디버깅용 원본 데이터 백업
                     if exclude_words.strip():
                         pattern = '|'.join([re.escape(w.strip()) for w in exclude_words.split(',') if w.strip()])
                         df = df[~df['업종'].str.contains(pattern, na=False)]
@@ -220,6 +222,10 @@ def index():
                         final_df['주소'] = final_df.apply(make_route_link, axis=1)
                         
                         table_html = final_df[['순위', '상호명', '업종', '평점', '후기수', '주소']].to_html(escape=False, index=False, border=0)
+                    
+                    # 💡 수집된 전체 Raw 데이터를 화면 하단에 추가로 출력
+                    raw_html = raw_df.to_html(escape=False, index=False, border=1)
+                    table_html += f"<div style='margin-top: 50px; overflow-x: auto;'><h3>🚨 디버깅용: 수집된 전체 식당 리스트 ({len(raw_df)}건)</h3>{raw_html}</div>"
                 
                 elapsed_time = f"{time.time() - start_t:.2f}"
                 
