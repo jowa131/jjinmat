@@ -112,9 +112,9 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
             
             # 💡 스마트 대기: 무조건 2초를 기다리지 않고, 별점 데이터가 로딩되면 즉시 통과 (최대 2초)
-            for _ in range(10):
+            for _ in range(15): # SPA 특성상 페이지가 깊어질수록 느려지므로 대기 시도 횟수 증가
                 if any(e.text.strip() not in ['', '0.0'] for e in driver.find_elements(By.CSS_SELECTOR, "em.num")):
-                    time.sleep(0.5) # 💡 첫 식당 별점 렌더링 직후, 나머지 14개 식당의 데이터도 DOM에 채워질 수 있도록 0.5초 여유 부여
+                    time.sleep(1.5) # 💡 후반부 페이지 렌더링 지연(DOM 누락)을 완벽히 방지하기 위해 1.5초 넉넉히 부여
                     break
                 time.sleep(0.2)
             
@@ -126,9 +126,9 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
                 
                 # 💡 스마트 대기: 페이지 이동 후 별점 데이터 로딩 시 즉시 통과
-                for _ in range(10):
+                for _ in range(15):
                     if any(e.text.strip() not in ['', '0.0'] for e in driver.find_elements(By.CSS_SELECTOR, "em.num")):
-                        time.sleep(0.5) # 💡 나머지 식당 DOM 렌더링 대기
+                        time.sleep(1.5) # 💡 데이터 누락 방지를 위한 안정적인 렌더링 대기 시간 확보
                         break
                     time.sleep(0.2)
                 
