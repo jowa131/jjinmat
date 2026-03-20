@@ -1,3 +1,5 @@
+# --- VERSION: v1.1 ---
+# 중점 수정: implicitly_wait 충돌로 인한 100초 무한 딜레이 완벽 제거 및 JS 기반 초고속 DOM 렌더링 감지 도입
 import os
 import time
 import re
@@ -101,7 +103,6 @@ def crawl_kakao_map(region_query, max_pages, job_id):
         driver = webdriver.Chrome(service=Service(DRIVER_PATH), options=options)
         
         try:
-            driver.implicitly_wait(3)
             wait = WebDriverWait(driver, 5) # 최대 5초 대기
             driver.get("https://map.kakao.com/")
             
@@ -110,16 +111,15 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             search_box.send_keys(Keys.ENTER)
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
             
-            # 💡 초고속 스마트 대기 (수정): 별점이 없는 식당 때문에 무한 로딩(100초)이 걸리는 현상 완벽 해결
-            # '별점' 대신 모든 식당에 무조건 존재하는 '상호명'이 렌더링되었는지를 기준으로 판단합니다.
+            # 💡 초고속 스마트 대기 v1.1: implicitly_wait 충돌 방지 및 JS 직접 실행으로 통신 병목(Lag) 완벽 제거
             for _ in range(15):
-                places = driver.find_elements(By.CSS_SELECTOR, "li.PlaceItem")
-                if places:
-                    last_place = places[-1]
-                    names = last_place.find_elements(By.CSS_SELECTOR, "a.link_name")
-                    if names and names[0].text.strip() != "":
-                        time.sleep(0.4) # 상호명이 뜬 후 별점이 채워지는 찰나의 시간만 보장 (속도 회복)
-                        break
+                is_rendered = driver.execute_script("""
+                    var items = document.querySelectorAll('li.PlaceItem a.link_name');
+                    return items.length > 0 && items[items.length - 1].innerText.trim() !== '';
+                """)
+                if is_rendered:
+                    time.sleep(0.3) # 렌더링 확인 후 별점이 채워질 찰나의 시간만 짧게 보장
+                    break
                 time.sleep(0.2)
             
             scrape_progress[job_id]["status"] = "scraping"
@@ -129,15 +129,15 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                 scrape_progress[job_id]["current"] = current_page
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
                 
-                # 💡 초고속 스마트 대기 (수정): 다음 페이지 역시 마지막 식당의 '상호명' 렌더링을 기준으로 판단
+                # 💡 초고속 스마트 대기 v1.1: 다음 페이지 이동 후 JS 직접 탐색 적용
                 for _ in range(15):
-                    places = driver.find_elements(By.CSS_SELECTOR, "li.PlaceItem")
-                    if places:
-                        last_place = places[-1]
-                        names = last_place.find_elements(By.CSS_SELECTOR, "a.link_name")
-                        if names and names[0].text.strip() != "":
-                            time.sleep(0.4)
-                            break
+                    is_rendered = driver.execute_script("""
+                        var items = document.querySelectorAll('li.PlaceItem a.link_name');
+                        return items.length > 0 && items[items.length - 1].innerText.trim() !== '';
+                    """)
+                    if is_rendered:
+                        time.sleep(0.3)
+                        break
                     time.sleep(0.2)
                 
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
