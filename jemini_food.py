@@ -71,7 +71,17 @@ def crawl_kakao_map(region_query, max_pages, job_id):
         options.add_argument('--disable-software-rasterizer')
         options.page_load_strategy = 'eager'
         
-        prefs = {'profile.managed_default_content_settings': {'images': 2, 'plugins': 2, 'media_stream': 2}}
+        # 💡 극한의 속도 최적화: 텍스트 크롤링에 불필요한 모든 리소스 차단
+        prefs = {
+            'profile.managed_default_content_settings': {
+                'images': 2,        # 이미지 차단
+                'plugins': 2,       # 플러그인 차단
+                'media_stream': 2,  # 미디어 차단
+                'stylesheet': 2,    # CSS(스타일시트) 로딩 차단 -> 렌더링 속도 대폭 향상
+                'font': 2,          # 웹 폰트 다운로드 차단
+                'sub_frame': 2      # IFrame(외부 위젯/광고 등) 차단
+            }
+        }
         options.add_experimental_option('prefs', prefs)
         options.add_argument('--disable-logging')
         options.add_argument('--log-level=3')
@@ -214,7 +224,6 @@ def index():
                 
                 num_res = 0
                 if not df.empty and '상호명' in df.columns:
-                    raw_df = df.copy() # 디버깅용 원본 데이터 백업 (중복 제거 등 어떠한 가공도 거치지 않은 완전한 원본)
                     df = df.drop_duplicates(subset=['상호명', '주소']) # 이름이 같아도 지점(주소)이 다르면 누락되지 않도록 수정
                     
                     if exclude_words.strip():
@@ -249,10 +258,6 @@ def index():
                         final_df['주소'] = final_df.apply(make_route_link, axis=1)
                         
                         table_html = final_df[['순위', '상호명', '업종', '평점', '후기수', '주소']].to_html(escape=False, index=False, border=0)
-                    
-                    # 💡 수집된 전체 Raw 데이터를 화면 하단에 추가로 출력
-                    raw_html = raw_df.to_html(escape=False, index=False, border=1)
-                    table_html += f"<div style='margin-top: 50px; overflow-x: auto;'><h3>🚨 디버깅용: 수집된 전체 식당 리스트 ({len(raw_df)}건)</h3>{raw_html}</div>"
                 
                 elapsed_time = f"{time.time() - start_t:.2f}"
                 
