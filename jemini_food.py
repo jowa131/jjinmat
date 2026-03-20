@@ -111,11 +111,15 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             search_box.send_keys(Keys.ENTER)
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
             
-            # 💡 스마트 대기: 무조건 2초를 기다리지 않고, 별점 데이터가 로딩되면 즉시 통과 (최대 2초)
-            for _ in range(15): # SPA 특성상 페이지가 깊어질수록 느려지므로 대기 시도 횟수 증가
-                if any(e.text.strip() not in ['', '0.0'] for e in driver.find_elements(By.CSS_SELECTOR, "em.num")):
-                    time.sleep(1.5) # 💡 후반부 페이지 렌더링 지연(DOM 누락)을 완벽히 방지하기 위해 1.5초 넉넉히 부여
-                    break
+            # 💡 초고속 스마트 대기: 1.5초 강제 대기를 없애고, 리스트의 '마지막 식당' 데이터 렌더링 여부를 확인하여 즉시 통과
+            for _ in range(20):
+                places = driver.find_elements(By.CSS_SELECTOR, "li.PlaceItem")
+                if places:
+                    last_place = places[-1]
+                    nums = last_place.find_elements(By.CSS_SELECTOR, "em.num")
+                    if nums and nums[0].text.strip() != "":
+                        time.sleep(0.1) # 전체 리스트 렌더링 확인 후 즉시 통과 (속도 비약적 향상)
+                        break
                 time.sleep(0.2)
             
             scrape_progress[job_id]["status"] = "scraping"
@@ -125,11 +129,15 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                 scrape_progress[job_id]["current"] = current_page
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
                 
-                # 💡 스마트 대기: 페이지 이동 후 별점 데이터 로딩 시 즉시 통과
-                for _ in range(15):
-                    if any(e.text.strip() not in ['', '0.0'] for e in driver.find_elements(By.CSS_SELECTOR, "em.num")):
-                        time.sleep(1.5) # 💡 데이터 누락 방지를 위한 안정적인 렌더링 대기 시간 확보
-                        break
+                # 💡 초고속 스마트 대기: 다음 페이지로 넘어간 후에도 마지막 식당이 화면에 그려지면 즉시 통과
+                for _ in range(20):
+                    places = driver.find_elements(By.CSS_SELECTOR, "li.PlaceItem")
+                    if places:
+                        last_place = places[-1]
+                        nums = last_place.find_elements(By.CSS_SELECTOR, "em.num")
+                        if nums and nums[0].text.strip() != "":
+                            time.sleep(0.1)
+                            break
                     time.sleep(0.2)
                 
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
