@@ -110,14 +110,15 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             search_box.send_keys(Keys.ENTER)
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
             
-            # 💡 초고속 스마트 대기: 1.5초 강제 대기를 없애고, 리스트의 '마지막 식당' 데이터 렌더링 여부를 확인하여 즉시 통과
-            for _ in range(20):
+            # 💡 초고속 스마트 대기 (수정): 별점이 없는 식당 때문에 무한 로딩(100초)이 걸리는 현상 완벽 해결
+            # '별점' 대신 모든 식당에 무조건 존재하는 '상호명'이 렌더링되었는지를 기준으로 판단합니다.
+            for _ in range(15):
                 places = driver.find_elements(By.CSS_SELECTOR, "li.PlaceItem")
                 if places:
                     last_place = places[-1]
-                    nums = last_place.find_elements(By.CSS_SELECTOR, "em.num")
-                    if nums and nums[0].text.strip() != "":
-                        time.sleep(0.1) # 전체 리스트 렌더링 확인 후 즉시 통과 (속도 비약적 향상)
+                    names = last_place.find_elements(By.CSS_SELECTOR, "a.link_name")
+                    if names and names[0].text.strip() != "":
+                        time.sleep(0.4) # 상호명이 뜬 후 별점이 채워지는 찰나의 시간만 보장 (속도 회복)
                         break
                 time.sleep(0.2)
             
@@ -128,14 +129,14 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                 scrape_progress[job_id]["current"] = current_page
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
                 
-                # 💡 초고속 스마트 대기: 다음 페이지로 넘어간 후에도 마지막 식당이 화면에 그려지면 즉시 통과
-                for _ in range(20):
+                # 💡 초고속 스마트 대기 (수정): 다음 페이지 역시 마지막 식당의 '상호명' 렌더링을 기준으로 판단
+                for _ in range(15):
                     places = driver.find_elements(By.CSS_SELECTOR, "li.PlaceItem")
                     if places:
                         last_place = places[-1]
-                        nums = last_place.find_elements(By.CSS_SELECTOR, "em.num")
-                        if nums and nums[0].text.strip() != "":
-                            time.sleep(0.1)
+                        names = last_place.find_elements(By.CSS_SELECTOR, "a.link_name")
+                        if names and names[0].text.strip() != "":
+                            time.sleep(0.4)
                             break
                     time.sleep(0.2)
                 
