@@ -1,6 +1,7 @@
 import time
 import re
 import uuid
+import threading
 import urllib.parse
 import pandas as pd
 import logging
@@ -34,93 +35,109 @@ except Exception as e:
 search_cache = TTLCache(maxsize=100, ttl=3600)
 scrape_progress = {}
 
+# --- 💡 동시성 및 리소스 관리 설정 ---
+# 1. 매 요청마다 호출되던 드라이버 설치를 전역(앱 실행 시 1회)으로 변경하여 속도 향상
+DRIVER_PATH = ChromeDriverManager().install()
+# 2. 2GB 서버 RAM 초과(OOM) 방지를 위해 크롬 브라우저 개수를 2개로 엄격히 제한
+MAX_CONCURRENT_BROWSERS = 2
+browser_semaphore = threading.Semaphore(MAX_CONCURRENT_BROWSERS)
+
 def crawl_kakao_map(region_query, max_pages, job_id):
     cache_key = f"{region_query}_{max_pages}"
     if cache_key in search_cache:
         scrape_progress[job_id] = {"status": "cached", "current": max_pages, "total": max_pages}
         return search_cache[cache_key]
 
-    scrape_progress[job_id] = {"current": 0, "total": max_pages, "status": "initializing"}
-    
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.page_load_strategy = 'eager'
-    
-    prefs = {'profile.managed_default_content_settings': {'images': 2, 'plugins': 2, 'media_stream': 2}}
-    options.add_experimental_option('prefs', prefs)
-    options.add_argument('--disable-logging')
-    options.add_argument('--log-level=3')
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    driver.implicitly_wait(3)
-    wait = WebDriverWait(driver, 5) # 최대 5초 대기
-    
+    scrape_progress[job_id] = {"current": 0, "total": max_pages, "status": "waiting_for_browser"}
     restaurant_list = []
-    try:
-        driver.get("https://map.kakao.com/")
+    
+    # 💡 세마포어를 통해 동시 브라우저 실행 수를 제한 (대기열 관리)
+    with browser_semaphore:
+        scrape_progress[job_id]["status"] = "initializing"
         
-        search_box = driver.find_element(By.ID, "search.keyword.query")
-        search_box.send_keys(region_query)
-        search_box.send_keys(Keys.ENTER)
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless=new')                        # 최신 헤드리스 모드 (메모리 안정성 향상)
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')               # /dev/shm 대신 /tmp 사용 (메모리 부족 방지)
+        options.add_argument('--disable-gpu')                 # 불필요한 GPU 연산 비활성화
+        options.add_argument('--disable-extensions')          # 확장 프로그램 비활성화
+        options.add_argument('--blink-settings=imagesEnabled=false')  # 이미지 로딩 완전 차단 (속도 향상 및 메모리 절약)
+        options.add_argument('--js-flags="--max-old-space-size=256"') # V8 자바스크립트 엔진 힙 메모리 256MB로 엄격히 제한
+        options.add_argument('--disable-software-rasterizer')
+        options.page_load_strategy = 'eager'
+        
+        prefs = {'profile.managed_default_content_settings': {'images': 2, 'plugins': 2, 'media_stream': 2}}
+        options.add_experimental_option('prefs', prefs)
+        options.add_argument('--disable-logging')
+        options.add_argument('--log-level=3')
+
+        # 전역 캐싱된 드라이버 경로 사용
+        driver = webdriver.Chrome(service=Service(DRIVER_PATH), options=options)
         
         try:
-            more_button = driver.find_element(By.ID, "info.search.place.more")
-            driver.execute_script("arguments[0].click();", more_button)
-            wait.until(EC.visibility_of_element_located((By.ID, "info.search.page"))) # 페이지 번호가 보일 때까지 대기
-        except:
-            pass
-
-        scrape_progress[job_id]["status"] = "scraping"
-        
-        for page in range(1, max_pages + 1):
-            scrape_progress[job_id]["current"] = page
-            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
+            driver.implicitly_wait(3)
+            wait = WebDriverWait(driver, 5) # 최대 5초 대기
+            driver.get("https://map.kakao.com/")
             
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
-            places = soup.select("li.PlaceItem")
+            search_box = driver.find_element(By.ID, "search.keyword.query")
+            search_box.send_keys(region_query)
+            search_box.send_keys(Keys.ENTER)
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
             
-            for place in places:
-                try:
-                    name = place.select_one("a.link_name").text.strip()
-                    category = place.select_one("span.subcategory").text.strip() if place.select_one("span.subcategory") else ""
-                    link = place.select_one("a.moreview").get('href', '#')
-                    
-                    rating_tag = place.select_one("em.num")
-                    rating = float(rating_tag.text) if rating_tag and rating_tag.text != '0.0' else 0.0
-                    
-                    rating_count_tag = place.select_one("a[data-id='numberofscore']") or place.select_one(".rating .numberofscore")
-                    rating_count_str = rating_count_tag.text.strip() if rating_count_tag else "0"
-                    rating_count = int(re.sub(r'[^0-9]', '', rating_count_str))
-                    
-                    address = place.select_one("div.info_item > div.addr > p").text.strip()
-                    
-                    restaurant_list.append({"상호명": name, "업종": category, "평점": rating, "후기수": rating_count, "주소": address, "링크": link})
-                except:
-                    continue
-                    
-            if page == max_pages: break
-            
-            # 다음 페이지로 넘어가기 전 현재 목록의 첫 번째 아이템을 기억해둠
-            first_item = driver.find_element(By.CSS_SELECTOR, "li.PlaceItem")
             try:
-                next_page_num = page + 1
-                if next_page_num % 5 == 1:
-                    driver.execute_script("arguments[0].click();", driver.find_element(By.ID, "info.search.page.next"))
-                else:
-                    page_btn = driver.find_element(By.ID, f"info.search.page.no{next_page_num % 5 if next_page_num % 5 != 0 else 5}")
-                    driver.execute_script("arguments[0].click();", page_btn)
-                wait.until(EC.staleness_of(first_item)) # 이전 목록의 아이템이 사라질 때까지(DOM 업데이트 완료) 대기
+                more_button = driver.find_element(By.ID, "info.search.place.more")
+                driver.execute_script("arguments[0].click();", more_button)
+                wait.until(EC.visibility_of_element_located((By.ID, "info.search.page"))) # 페이지 번호가 보일 때까지 대기
             except:
-                break
-    finally:
-        driver.quit()
+                pass
+
+            scrape_progress[job_id]["status"] = "scraping"
+            
+            for page in range(1, max_pages + 1):
+                scrape_progress[job_id]["current"] = page
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
+                
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
+                places = soup.select("li.PlaceItem")
+                
+                for place in places:
+                    try:
+                        name = place.select_one("a.link_name").text.strip()
+                        category = place.select_one("span.subcategory").text.strip() if place.select_one("span.subcategory") else ""
+                        link = place.select_one("a.moreview").get('href', '#')
+                        
+                        rating_tag = place.select_one("em.num")
+                        rating = float(rating_tag.text) if rating_tag and rating_tag.text != '0.0' else 0.0
+                        
+                        rating_count_tag = place.select_one("a[data-id='numberofscore']") or place.select_one(".rating .numberofscore")
+                        rating_count_str = rating_count_tag.text.strip() if rating_count_tag else "0"
+                        rating_count = int(re.sub(r'[^0-9]', '', rating_count_str))
+                        
+                        address = place.select_one("div.info_item > div.addr > p").text.strip()
+                        
+                        restaurant_list.append({"상호명": name, "업종": category, "평점": rating, "후기수": rating_count, "주소": address, "링크": link})
+                    except:
+                        continue
+                        
+                if page == max_pages: break
+                
+                # 다음 페이지로 넘어가기 전 현재 목록의 첫 번째 아이템을 기억해둠
+                first_item = driver.find_element(By.CSS_SELECTOR, "li.PlaceItem")
+                try:
+                    next_page_num = page + 1
+                    if next_page_num % 5 == 1:
+                        driver.execute_script("arguments[0].click();", driver.find_element(By.ID, "info.search.page.next"))
+                    else:
+                        page_btn = driver.find_element(By.ID, f"info.search.page.no{next_page_num % 5 if next_page_num % 5 != 0 else 5}")
+                        driver.execute_script("arguments[0].click();", page_btn)
+                    wait.until(EC.staleness_of(first_item)) # 이전 목록의 아이템이 사라질 때까지(DOM 업데이트 완료) 대기
+                except:
+                    break
+        finally:
+            driver.quit()
 
     search_cache[cache_key] = restaurant_list
     return restaurant_list
-
 # --- Flask 웹 라우팅 ---
 @app.route('/progress/<job_id>')
 def progress(job_id): 
@@ -192,4 +209,10 @@ def index():
     return render_template('index.html', table_html=table_html, query=query, max_pages=max_pages, exclude_words=exclude_words, elapsed_time=elapsed_time, job_id=new_job_id)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, threaded=True)
+    try:
+        from waitress import serve
+        logger.info("Waitress(프로덕션 WSGI) 서버로 실행 중입니다. (포트: 5000)")
+        serve(app, host='0.0.0.0', port=5000, threads=4)
+    except ImportError:
+        logger.warning("waitress 모듈이 없습니다. 프로덕션 환경을 위해 'pip install waitress'를 권장합니다.")
+        app.run(host='0.0.0.0', port=5000, threaded=True)
