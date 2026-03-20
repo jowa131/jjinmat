@@ -69,6 +69,10 @@ def crawl_kakao_map(region_query, max_pages, job_id):
         options.add_argument('--blink-settings=imagesEnabled=false')  # 이미지 로딩 완전 차단 (속도 향상 및 메모리 절약)
         options.add_argument('--js-flags="--max-old-space-size=256"') # V8 자바스크립트 엔진 힙 메모리 256MB로 엄격히 제한
         options.add_argument('--disable-software-rasterizer')
+        
+        # 💡 브라우저 구동 시 프록시 자동 탐색으로 인한 20초 지연(Hang) 현상 완벽 방지
+        options.add_argument('--proxy-server="direct://"')
+        options.add_argument('--proxy-bypass-list=*')
         options.page_load_strategy = 'eager'
         
         # 💡 극한의 속도 최적화: 텍스트 크롤링에 불필요한 모든 리소스 차단
