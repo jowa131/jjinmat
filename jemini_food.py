@@ -91,10 +91,29 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             time.sleep(2) # 💡 첫 검색 후 리뷰 및 평점 데이터가 비동기로 렌더링될 시간을 충분히 부여
             
             try:
+                # 변경 전 기존 목록 요소를 기억해둠
+                initial_items = driver.find_elements(By.CSS_SELECTOR, "li.PlaceItem")
+                
                 more_button = driver.find_element(By.ID, "info.search.place.more")
-                driver.execute_script("arguments[0].click();", more_button)
-                wait.until(EC.visibility_of_element_located((By.ID, "info.search.page"))) # 페이지 번호가 보일 때까지 대기
-                time.sleep(1) # 💡 '장소 더보기' 확장 후 화면 갱신 대기
+                # 💡 화면에 보이지 않는 '장소 더보기' 버튼을 강제 클릭하면 2페이지로 넘어가는 버그 방지
+                if more_button.is_displayed() and "HIDDEN" not in more_button.get_attribute("class").upper():
+                    driver.execute_script("arguments[0].click();", more_button)
+                    
+                    # '장소 더보기' 클릭 시 기존 목록이 사라지고 1페이지 전체 목록이 새로 렌더링될 때까지 확실히 대기
+                    if initial_items:
+                        wait.until(EC.staleness_of(initial_items[0]))
+                        
+                    wait.until(EC.visibility_of_element_located((By.ID, "info.search.page"))) # 페이지 번호가 보일 때까지 대기
+                    time.sleep(2) # 💡 새로운 1페이지 리스트와 별점이 온전히 렌더링되도록 넉넉히 대기
+            except:
+                pass
+
+            # 💡 크롤링 루프 시작 전, 현재 페이지가 틀어졌을 경우를 대비해 확실하게 1페이지로 초기화
+            try:
+                page_1_btn = driver.find_element(By.ID, "info.search.page.no1")
+                if "ACTIVE" not in page_1_btn.get_attribute("class").upper():
+                    driver.execute_script("arguments[0].click();", page_1_btn)
+                    time.sleep(2)
             except:
                 pass
 
