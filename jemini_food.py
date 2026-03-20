@@ -10,6 +10,8 @@ from cachetools import TTLCache
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
@@ -53,6 +55,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     driver.implicitly_wait(3)
+    wait = WebDriverWait(driver, 5) # 최대 5초 대기
     
     restaurant_list = []
     try:
@@ -61,12 +64,12 @@ def crawl_kakao_map(region_query, max_pages, job_id):
         search_box = driver.find_element(By.ID, "search.keyword.query")
         search_box.send_keys(region_query)
         search_box.send_keys(Keys.ENTER)
-        time.sleep(1)
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
         
         try:
             more_button = driver.find_element(By.ID, "info.search.place.more")
             driver.execute_script("arguments[0].click();", more_button)
-            time.sleep(0.5)
+            wait.until(EC.visibility_of_element_located((By.ID, "info.search.page"))) # 페이지 번호가 보일 때까지 대기
         except:
             pass
 
@@ -74,7 +77,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
         
         for page in range(1, max_pages + 1):
             scrape_progress[job_id]["current"] = page
-            time.sleep(0.5)
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
             
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             places = soup.select("li.PlaceItem")
@@ -100,6 +103,8 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                     
             if page == max_pages: break
             
+            # 다음 페이지로 넘어가기 전 현재 목록의 첫 번째 아이템을 기억해둠
+            first_item = driver.find_element(By.CSS_SELECTOR, "li.PlaceItem")
             try:
                 next_page_num = page + 1
                 if next_page_num % 5 == 1:
@@ -107,6 +112,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                 else:
                     page_btn = driver.find_element(By.ID, f"info.search.page.no{next_page_num % 5 if next_page_num % 5 != 0 else 5}")
                     driver.execute_script("arguments[0].click();", page_btn)
+                wait.until(EC.staleness_of(first_item)) # 이전 목록의 아이템이 사라질 때까지(DOM 업데이트 완료) 대기
             except:
                 break
     finally:
