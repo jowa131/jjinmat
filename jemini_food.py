@@ -138,7 +138,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                         addr_tag = place.select_one("div.info_item > div.addr > p")
                         address = addr_tag.text.strip() if addr_tag else ""
                         
-                        restaurant_list.append({"상호명": name, "업종": category, "평점": rating, "후기수": rating_count, "주소": address, "링크": link})
+                        restaurant_list.append({"페이지": page, "상호명": name, "업종": category, "평점": rating, "후기수": rating_count, "주소": address, "링크": link})
                     except:
                         # 데이터 파싱 중 일부 오류가 나도 해당 식당을 통째로 날리지 않고 계속 진행
                         pass
@@ -187,9 +187,9 @@ def index():
                 
                 num_res = 0
                 if not df.empty and '상호명' in df.columns:
+                    raw_df = df.copy() # 디버깅용 원본 데이터 백업 (중복 제거 등 어떠한 가공도 거치지 않은 완전한 원본)
                     df = df.drop_duplicates(subset=['상호명', '주소']) # 이름이 같아도 지점(주소)이 다르면 누락되지 않도록 수정
                     
-                    raw_df = df.copy() # 디버깅용 원본 데이터 백업
                     if exclude_words.strip():
                         pattern = '|'.join([re.escape(w.strip()) for w in exclude_words.split(',') if w.strip()])
                         df = df[~df['업종'].str.contains(pattern, na=False)]
