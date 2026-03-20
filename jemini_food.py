@@ -150,12 +150,12 @@ def crawl_kakao_map(region_query, max_pages, job_id):
                             except: pass
                         
                         rating_count = 0
-                        # 💡 카카오맵의 '별점 참여 수'와 '방문자/블로그 리뷰 수'를 모두 찾아 합산하여 누락 방지 및 랭킹 정확도 향상
-                        review_tags = place.select("a[data-id='numberofscore'], a[data-id='review']")
-                        for r_tag in review_tags:
-                            cnt_str = re.sub(r'[^0-9]', '', r_tag.text)
+                        # 💡 블로그/방문자 '리뷰'는 제외하고 오직 '별점/후기 참여 수'만 집계
+                        rating_count_tag = place.select_one("a[data-id='numberofscore']") or place.select_one(".rating .numberofscore")
+                        if rating_count_tag:
+                            cnt_str = re.sub(r'[^0-9]', '', rating_count_tag.text)
                             if cnt_str:
-                                try: rating_count += int(cnt_str)
+                                try: rating_count = int(cnt_str)
                                 except: pass
                         
                         addr_tag = place.select_one("div.info_item > div.addr > p")
