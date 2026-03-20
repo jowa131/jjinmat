@@ -70,6 +70,11 @@ def crawl_kakao_map(region_query, max_pages, job_id):
         options.add_argument('--js-flags="--max-old-space-size=256"') # V8 자바스크립트 엔진 힙 메모리 256MB로 엄격히 제한
         options.add_argument('--disable-software-rasterizer')
         
+        # 💡 CPU 점유율(200% 치솟음) 억제를 위한 렌더링 연산 강제 최소화 옵션
+        options.add_argument('--disable-accelerated-2d-canvas')     
+        options.add_argument('--disable-accelerated-jpeg-decoding')
+        options.add_argument('--renderer-process-limit=1')            # 렌더러 프로세스를 여러 개 쪼개지 않고 1개로 제한
+        
         # 💡 브라우저 구동 시 프록시 자동 탐색으로 인한 20초 지연(Hang) 현상 완벽 방지
         options.add_argument('--proxy-server="direct://"')
         options.add_argument('--proxy-bypass-list=*')
