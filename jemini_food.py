@@ -87,11 +87,13 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             search_box.send_keys(region_query)
             search_box.send_keys(Keys.ENTER)
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
+            time.sleep(1) # 💡 첫 검색 후 리뷰 및 평점 데이터가 비동기로 렌더링될 시간을 부여
             
             try:
                 more_button = driver.find_element(By.ID, "info.search.place.more")
                 driver.execute_script("arguments[0].click();", more_button)
                 wait.until(EC.visibility_of_element_located((By.ID, "info.search.page"))) # 페이지 번호가 보일 때까지 대기
+                time.sleep(1) # 💡 '장소 더보기' 확장 후 화면 갱신 대기
             except:
                 pass
 
@@ -100,6 +102,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             for page in range(1, max_pages + 1):
                 scrape_progress[job_id]["current"] = page
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
+                time.sleep(0.8) # 💡 상호명이 뜬 직후 별점(em.num)이 채워지는 찰나의 시간을 대기
                 
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 places = soup.select("li.PlaceItem")
