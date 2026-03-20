@@ -61,6 +61,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
         
         options = webdriver.ChromeOptions()
         options.add_argument('--headless=new')                        # 최신 헤드리스 모드 (메모리 안정성 향상)
+        options.add_argument('--window-size=1920,1080')               # 모바일 UI로 변경되어 리스트가 숨겨지는 현상 방지
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')               # /dev/shm 대신 /tmp 사용 (메모리 부족 방지)
         options.add_argument('--disable-gpu')                 # 불필요한 GPU 연산 비활성화
@@ -87,7 +88,7 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             search_box.send_keys(region_query)
             search_box.send_keys(Keys.ENTER)
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem"))) # 검색 결과가 뜰 때까지 대기
-            time.sleep(1) # 💡 첫 검색 후 리뷰 및 평점 데이터가 비동기로 렌더링될 시간을 부여
+            time.sleep(2) # 💡 첫 검색 후 리뷰 및 평점 데이터가 비동기로 렌더링될 시간을 충분히 부여
             
             try:
                 more_button = driver.find_element(By.ID, "info.search.place.more")
@@ -102,29 +103,45 @@ def crawl_kakao_map(region_query, max_pages, job_id):
             for page in range(1, max_pages + 1):
                 scrape_progress[job_id]["current"] = page
                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.PlaceItem")))
-                time.sleep(0.8) # 💡 상호명이 뜬 직후 별점(em.num)이 채워지는 찰나의 시간을 대기
+                time.sleep(2) # 💡 상호명이 뜬 직후 별점(em.num)이 채워지는 시간을 넉넉히 대기
                 
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 places = soup.select("li.PlaceItem")
                 
                 for place in places:
                     try:
-                        name = place.select_one("a.link_name").text.strip()
-                        category = place.select_one("span.subcategory").text.strip() if place.select_one("span.subcategory") else ""
-                        link = place.select_one("a.moreview").get('href', '#')
+                        name_tag = place.select_one("a.link_name")
+                        if not name_tag:
+                            continue
+                        name = name_tag.text.strip()
                         
+                        category_tag = place.select_one("span.subcategory")
+                        category = category_tag.text.strip() if category_tag else ""
+                        
+                        link_tag = place.select_one("a.moreview")
+                        link = link_tag.get('href', '#') if link_tag else '#'
+                        
+                        rating = 0.0
                         rating_tag = place.select_one("em.num")
-                        rating = float(rating_tag.text) if rating_tag and rating_tag.text != '0.0' else 0.0
+                        if rating_tag and rating_tag.text and rating_tag.text != '0.0':
+                            try: rating = float(rating_tag.text)
+                            except: pass
                         
-                        rating_count_tag = place.select_one("a[data-id='numberofscore']") or place.select_one(".rating .numberofscore")
-                        rating_count_str = rating_count_tag.text.strip() if rating_count_tag else "0"
-                        rating_count = int(re.sub(r'[^0-9]', '', rating_count_str))
+                        rating_count = 0
+                        rating_count_tag = place.select_one("a[data-id='numberofscore']") or place.select_one(".rating .numberofscore") or place.select_one("a[data-id='review']")
+                        if rating_count_tag:
+                            cnt_str = re.sub(r'[^0-9]', '', rating_count_tag.text)
+                            if cnt_str:
+                                try: rating_count = int(cnt_str)
+                                except: pass
                         
-                        address = place.select_one("div.info_item > div.addr > p").text.strip()
+                        addr_tag = place.select_one("div.info_item > div.addr > p")
+                        address = addr_tag.text.strip() if addr_tag else ""
                         
                         restaurant_list.append({"상호명": name, "업종": category, "평점": rating, "후기수": rating_count, "주소": address, "링크": link})
                     except:
-                        continue
+                        # 데이터 파싱 중 일부 오류가 나도 해당 식당을 통째로 날리지 않고 계속 진행
+                        pass
                         
                 if page == max_pages: break
                 
@@ -170,7 +187,7 @@ def index():
                 
                 num_res = 0
                 if not df.empty and '상호명' in df.columns:
-                    df = df.drop_duplicates(subset=['상호명'])
+                    df = df.drop_duplicates(subset=['상호명', '주소']) # 이름이 같아도 지점(주소)이 다르면 누락되지 않도록 수정
                     if exclude_words.strip():
                         pattern = '|'.join([re.escape(w.strip()) for w in exclude_words.split(',') if w.strip()])
                         df = df[~df['업종'].str.contains(pattern, na=False)]
